@@ -24,7 +24,75 @@ const io = new Server(httpServer, {
 })
 
 io.on("connection", (socket) => {
-  console.log('\na user connected\n')
+  console.log('\na user connected\n', socket.id)
+
+  socket.on("create or join", (roomName) => {
+    const rooms = io.of("/").adapter.rooms;
+    const isExistingRoom = rooms.has(roomName)
+
+    if (!isExistingRoom) {
+      console.log(roomName, 'room is being created')
+
+      socket.join(roomName)
+      socket.emit("created", roomName)
+      console.log(socket.id, 'created room', roomName)
+    } else {
+      console.log(roomName, 'was an existing room')
+
+      const room = rooms.get(roomName)
+      const isFull = room.size > 1
+
+      if (isFull) {
+        socket.emit('full room', roomName)
+        console.log(socket.id, 'tried to enter full room', roomName)
+      } else {
+        socket.join(roomName)
+        socket.emit("joined", roomName)
+        console.log(socket.id, 'joined room', roomName)
+      }
+    }
+
+    const room = rooms.get(roomName)
+    const isFull = room.size > 1
+
+    console.log('after join', { room })
+
+    if (isFull) {
+      io.in(roomName).emit("ready")
+    }
+  })
+
+  socket.on('offer', ({ roomName, sdp }) => {
+    console.log('received offer', { roomName })
+    socket.to(roomName).emit('offer', sdp)
+  })
+  
+  socket.on('answer', ({ roomName, sdp }) => {
+    console.log('received answer', { roomName })
+    socket.to(roomName).emit('answer', sdp)
+  })
+
+  socket.on('candidate', ({
+    roomName,
+    sdpMLineIndex,
+    sdpMid,
+    usernameFragment,
+    candidate
+  }) => {
+    console.log('received candidate', { 
+      roomName,
+      sdpMLineIndex,
+      sdpMid,
+      usernameFragment,
+      candidate
+    })
+    socket.to(roomName).emit('candidate', {
+      sdpMLineIndex,
+      sdpMid,
+      usernameFragment,
+      candidate
+    })
+  })
 })
 
 httpServer.listen(PORT, () => {
