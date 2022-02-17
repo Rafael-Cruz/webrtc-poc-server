@@ -4,7 +4,16 @@ const express = require('express')
 const cors = require('cors')
 const { Server } = require("socket.io");
 
-const PORT = 8080
+const PORT = process.env.WEBRTC_POC_SERVER__PORT
+const ORIGIN = process.env.WEBRTC_POC_SERVER__ORIGIN
+
+if (!PORT) {
+  throw new Error('variable WEBRTC_POC_SERVER__PORT must be set')
+}
+
+if (!ORIGIN) {
+  throw new Error('variable WEBRTC_POC_SERVER__ORIGIN must be set')
+}
 
 const app = express()
 
@@ -18,7 +27,7 @@ const httpServer = http.createServer(app)
 
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: process.env.WEBRTC_POC_SERVER__ORIGIN,
     methods: ["GET", "POST"]
   }
 })
